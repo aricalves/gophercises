@@ -5,17 +5,20 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
+	"strings"
+	"time"
 )
 
-// TODO - remove globals where possible
-var score int
-var totalQuestions int
+type problem struct {
+	q, a string
+}
 
 func main() {
-	// TODO - Welcome message, enter name or something
-	fmt.Println("Hello...")
+	timeLimit := flag.Int("timer", 30, "Quiz time limit (seconds)")
 	csvFileName := flag.String("csv", "problems.csv", "CSV file in 'question, answer' format.")
+	shuffle := flag.Bool("shuffle", false, "If shuffle is true, problems will be presented in a random order.")
 	flag.Parse()
 
 	f, err := os.Open(*csvFileName)
@@ -24,22 +27,57 @@ func main() {
 	}
 
 	reader := csv.NewReader(f)
-	questions, err := reader.ReadAll()
+	lines, err := reader.ReadAll()
 	if err != nil {
 		log.Fatalln("Err reading problems", err)
 	}
 
-	// TODO:
-	//		While we are above EOF:
-	//			Print question to the user
-	//			Wait for user input
-	//			Read input and compare to answer
-	//			Inc/Dec user's score
-	//			Repeat until EOF
+	questions := parseQuestions(lines)
 
-	//		After EOF:
-	//			Display user score and name
-	//			Terminate
+	if *shuffle {
+		rand.Shuffle(len(questions), func(i, j int) {
+			questions[i], questions[j] = questions[j], questions[i]
+		})
+	}
 
-	fmt.Printf("You scored %v out of %v questions.\n", score, totalQuestions)
+	fmt.Println("What is your name? (Timer will start after you hit 'return')")
+	var user string
+	fmt.Scanf("%s", &user)
+
+	var score int
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
+
+	go func() {
+		<-timer.C
+		fmt.Println("\nTimer expired")
+		printScore(user, score, len(questions))
+	}()
+
+	for i, p := range questions {
+		fmt.Printf("Problem #%d: %s = ", i+1, p.q)
+		var answer string
+		fmt.Scanf("%s", &answer)
+		if answer == p.a {
+			score++
+		} else {
+			fmt.Println("Incorrect :/")
+		}
+	}
+	printScore(user, score, len(questions))
+}
+
+func parseQuestions(q [][]string) []problem {
+	problems := make([]problem, len(q))
+	for i, line := range q {
+		problems[i] = problem{
+			line[0],
+			strings.TrimSpace(line[1]),
+		}
+	}
+	return problems
+}
+
+func printScore(u string, s, q int) {
+	fmt.Printf("%s scored %d out of %d questions.\n", u, s, q)
+	os.Exit(0)
 }
