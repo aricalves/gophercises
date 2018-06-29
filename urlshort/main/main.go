@@ -13,9 +13,9 @@ import (
 )
 
 func main() {
-	yamlFile := flag.String("yaml", "default.yaml", "Name of YAML file.")
-	jsonFile := flag.String("json", "default.json", "Name of JSON file.")
-	dbLocation := flag.String("db", "urlshort.db", "Name of BoltDB file.")
+	yamlFile := flag.String("yaml", "./data/default.yaml", "Name of YAML file.")
+	jsonFile := flag.String("json", "./data/default.json", "Name of JSON file.")
+	dbLocation := flag.String("db", "./data/urlshort.db", "Name of BoltDB file.")
 
 	flag.Parse()
 
