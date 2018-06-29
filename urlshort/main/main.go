@@ -12,7 +12,8 @@ import (
 
 func main() {
 
-	yamlFile := flag.String("yaml", "default.yaml", "Filename of paths and corresponding urls.")
+	yamlFile := flag.String("yaml", "default.yaml", "Name of YAML file.")
+	jsonFile := flag.String("json", "default.json", "Name of JSON file.")
 	flag.Parse()
 
 	mux := defaultMux()
@@ -24,25 +25,41 @@ func main() {
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
-	f, err := os.Open(*yamlFile)
+	yaml, err := os.Open(*yamlFile)
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer yaml.Close()
 
-	lines, err := ioutil.ReadAll(f)
+	yamlLines, err := ioutil.ReadAll(yaml)
 	if err != nil {
 		panic(err)
 	}
 
 	// Build the YAMLHandler using the mapHandler as the fallback
-	yamlHandler, err := urlshort.YAMLHandler(lines, mapHandler)
+	yamlHandler, err := urlshort.YAMLHandler(yamlLines, mapHandler)
+	if err != nil {
+		panic(err)
+	}
+
+	json, err := os.Open(*jsonFile)
+	if err != nil {
+		panic(err)
+	}
+	defer json.Close()
+
+	jsonLines, err := ioutil.ReadAll(json)
+	if err != nil {
+		panic(err)
+	}
+
+	jsonHandler, err := urlshort.JSONHandler(jsonLines, yamlHandler)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", jsonHandler)
 }
 
 func defaultMux() *http.ServeMux {

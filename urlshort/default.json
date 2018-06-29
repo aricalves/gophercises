@@ -1,0 +1,9 @@
+[
+  {
+    "path": "/cheese",
+    "url": "https://cheese.com/"
+  }, {
+    "path": "/bar",
+    "url": "https://bar.com/"
+  }
+]
