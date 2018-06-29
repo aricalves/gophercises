@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/boltdb/bolt"
 	yaml "gopkg.in/yaml.v2"
 )
 
-type pathMap map[string]string
+type PathMap map[string]string // no-lint
 
 // MapHandler will return an http.HandlerFunc (which also
 // implements http.Handler) that will attempt to map any
@@ -15,7 +16,7 @@ type pathMap map[string]string
 // that each key in the map points to, in string format).
 // If the path is not provided in the map, then the fallback
 // http.Handler will be called instead.
-func MapHandler(pathsToUrls pathMap, fallback http.Handler) http.HandlerFunc {
+func MapHandler(pathsToUrls PathMap, fallback http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path, ok := pathsToUrls[r.URL.Path]
 		if ok {
@@ -26,8 +27,8 @@ func MapHandler(pathsToUrls pathMap, fallback http.Handler) http.HandlerFunc {
 	}
 }
 
-func makePathMap(in []pathMap) pathMap {
-	m := make(pathMap)
+func makePathMap(in []PathMap) PathMap {
+	m := make(PathMap)
 	for _, line := range in {
 		m[line["path"]] = line["url"]
 	}
@@ -36,7 +37,7 @@ func makePathMap(in []pathMap) pathMap {
 
 type unmarshaler func([]byte, interface{}) error
 
-func unmarshal(in []byte, fn unmarshaler) (out []pathMap) {
+func unmarshal(in []byte, fn unmarshaler) (out []PathMap) {
 	if err := fn(in, &out); err != nil {
 		panic(err)
 	}
@@ -82,4 +83,23 @@ func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
 // a mapping of paths to urls.
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return MapHandler(makePathMap(unmarshal(yml, yaml.Unmarshal)), fallback), nil
+}
+
+// ReadDB will read from the BoltDB database
+// and parse the key/value pairs
+func ReadDB(db *bolt.DB) (pathMap PathMap, err error) {
+	pathMap = make(PathMap)
+	err = db.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket([]byte("urlshort"))
+
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			pathMap[string(k)] = string(v)
+		}
+
+		return err
+	})
+	return pathMap, err
 }

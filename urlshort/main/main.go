@@ -6,14 +6,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aricalves/gophercises/urlshort"
+	"github.com/boltdb/bolt"
 )
 
 func main() {
-
 	yamlFile := flag.String("yaml", "default.yaml", "Name of YAML file.")
 	jsonFile := flag.String("json", "default.json", "Name of JSON file.")
+	dbLocation := flag.String("db", "urlshort.db", "Name of BoltDB file.")
+
 	flag.Parse()
 
 	mux := defaultMux()
@@ -31,13 +34,13 @@ func main() {
 	}
 	defer yaml.Close()
 
-	yamlLines, err := ioutil.ReadAll(yaml)
+	yamlSlice, err := ioutil.ReadAll(yaml)
 	if err != nil {
 		panic(err)
 	}
 
 	// Build the YAMLHandler using the mapHandler as the fallback
-	yamlHandler, err := urlshort.YAMLHandler(yamlLines, mapHandler)
+	yamlHandler, err := urlshort.YAMLHandler(yamlSlice, mapHandler)
 	if err != nil {
 		panic(err)
 	}
@@ -48,18 +51,44 @@ func main() {
 	}
 	defer json.Close()
 
-	jsonLines, err := ioutil.ReadAll(json)
+	jsonSlice, err := ioutil.ReadAll(json)
 	if err != nil {
 		panic(err)
 	}
 
-	jsonHandler, err := urlshort.JSONHandler(jsonLines, yamlHandler)
+	// Build the JSONHandler using the yamlHandler as the fallback
+	jsonHandler, err := urlshort.JSONHandler(jsonSlice, yamlHandler)
 	if err != nil {
 		panic(err)
 	}
+
+	db, err := bolt.Open(*dbLocation, 0666, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Init and populate DB
+	db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucket([]byte("urlshort"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		err = b.Put([]byte("/twitter"), []byte("https://twitter.com/aric_alves"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+
+	paths, err := urlshort.ReadDB(db)
+	if err != nil {
+		panic(db)
+	}
+	dbHandler := urlshort.MapHandler(paths, jsonHandler)
 
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", jsonHandler)
+	http.ListenAndServe(":8080", dbHandler)
 }
 
 func defaultMux() *http.ServeMux {
