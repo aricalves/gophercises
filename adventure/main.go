@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", hello)
+	r.HandleFunc("/", handleIndex)
 
 	http.Handle("/", r)
 
@@ -26,7 +26,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
+func handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write(parseJSONStory())
 }
 
