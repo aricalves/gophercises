@@ -2,39 +2,29 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/aricalves/gophercises/adventure/cyoa"
 )
 
-var story string
+var filename string
+var story cyoa.Story
+var port *int
 
 func main() {
-	flag.StringVar(&story, "story", "./public/gopher.json", "Location of JSON story")
+	port = flag.Int("port", 8080, "Port to serve HTTP")
+	flag.StringVar(&filename, "story", "./public/gopher.json", "File location of JSON story")
 	flag.Parse()
 
-	r := mux.NewRouter()
-	r.HandleFunc("/", handleIndex)
-
-	http.Handle("/", r)
-
-	port := ":8080"
-	log.Printf("Serving from localhost%v", port)
-	log.Fatal(http.ListenAndServe(port, nil))
-}
-
-func handleIndex(w http.ResponseWriter, r *http.Request) {
-	w.Write(parseJSONStory())
-}
-
-func parseJSONStory() []byte {
-	r, err := os.Open(story)
-	d, err := ioutil.ReadAll(r)
+	story, err := cyoa.ParseJSONStory(filename)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Could not parse JSON story", err)
 	}
-	return d
+
+	http.Handle("/", cyoa.NewHandler(story))
+
+	log.Printf("Serving from localhost:%d\n", *port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
