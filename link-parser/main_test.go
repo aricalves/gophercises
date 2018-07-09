@@ -9,12 +9,12 @@ import (
 	"golang.org/x/net/html"
 )
 
-func Test_Should_Find_All_Anchor_Tags(t *testing.T) {
+func Test_extract_links(t *testing.T) {
 	files := []struct {
 		name, loc string
 		want      []link
 	}{
-		{"single anchor tag", "ex1.html",
+		{"should find a single anchor tag", "ex1.html",
 			[]link{link{"/other-page", "A link to another page"}},
 		},
 		{"should strip inner html but keep text", "ex2.html",
@@ -23,7 +23,7 @@ func Test_Should_Find_All_Anchor_Tags(t *testing.T) {
 				link{"https://github.com/gophercises", "Gophercises is on Github!"},
 			},
 		},
-		{"many anchor tags", "ex3.html",
+		{"should find many anchor tags", "ex3.html",
 			[]link{
 				link{"#", "Login"},
 				link{"/lost", "Lost? Need help?"},
@@ -41,7 +41,7 @@ func Test_Should_Find_All_Anchor_Tags(t *testing.T) {
 	for _, f := range files {
 		location, err := os.Open(f.loc)
 		if err != nil {
-			log.Println("Error opening file:", f.loc, "\nError:", err)
+			log.Fatalln("Error opening file:", f.loc, "\nError:", err)
 		}
 		t.Run(f.name, func(t *testing.T) {
 			got := extractLinks(html.NewTokenizer(location))
