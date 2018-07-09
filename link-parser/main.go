@@ -1,21 +1,25 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"golang.org/x/net/html"
 )
 
 func main() {
-	f, err := os.Open("ex1.html")
+	f := flag.String("html", "ex1.html", "HTML File location")
+	flag.Parse()
+
+	file, err := os.Open(*f)
 	if err != nil {
 		log.Fatalln("Error opening file:", err)
 	}
 
-	t := html.NewTokenizer(f)
-	links := extractLinks(t)
+	links := extractLinks(html.NewTokenizer(file))
 	fmt.Println(links)
 }
 
@@ -36,7 +40,9 @@ func extractLinks(z *html.Tokenizer) (l []link) {
 		_, href, _ := z.TagAttr()
 		if string(el) == "a" && tt.String() == "StartTag" {
 			z.Next()
-			l = append(l, link{string(href), string(z.Text())})
+			text := string(z.Text())
+			l = append(l, extractLinks(z)...)
+			l = append(l, link{string(href), strings.TrimSpace(text)})
 		}
 	}
 	return l
