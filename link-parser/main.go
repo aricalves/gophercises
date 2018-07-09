@@ -2,36 +2,42 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"log"
+	"os"
 
 	"golang.org/x/net/html"
 )
 
 func main() {
-	s := `
-	<p>Links:</p>
-	<ul>
-		<li>
-		<a href="foo">Foo</a>
-		<li>
-		<a href="/bar/baz">BarBaz</a>
-	</ul>`
-	t := html.NewTokenizer(strings.NewReader(s))
-	printAnchorTags(t)
+	f, err := os.Open("ex1.html")
+	if err != nil {
+		log.Fatalln("Error opening file:", err)
+	}
+
+	t := html.NewTokenizer(f)
+	links := extractLinks(t)
+	fmt.Println(links)
 }
 
 type link struct {
 	href, text string
 }
 
-func printAnchorTags(z *html.Tokenizer) {
+func extractLinks(z *html.Tokenizer) (l []link) {
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
-			fmt.Println("\nEOF")
-			return
+			if err := z.Err().Error(); err != "EOF" {
+				log.Fatalln("HTML Error Token found:", err)
+			}
+			break
 		}
-		a, _ := z.TagName()
-		fmt.Printf("name:%v | text:%v\n", string(a), string(z.Text()))
+		el, _ := z.TagName()
+		_, href, _ := z.TagAttr()
+		if string(el) == "a" && tt.String() == "StartTag" {
+			z.Next()
+			l = append(l, link{string(href), string(z.Text())})
+		}
 	}
+	return l
 }
