@@ -14,26 +14,31 @@ func Test_extract_links(t *testing.T) {
 		name, loc string
 		want      []link
 	}{
-		{"should find a single anchor tag", "ex1.html",
+		{"should find a single anchor tag: ex1", "ex1.html",
 			[]link{link{"/other-page", "A link to another page"}},
 		},
-		{"should strip inner html but keep text", "ex2.html",
+		{"should strip inner html but keep text: ex2", "ex2.html",
 			[]link{
 				link{"https://www.twitter.com/joncalhoun", "Check me out on twitter"},
-				link{"https://github.com/gophercises", "Gophercises is on Github!"},
+				link{"https://github.com/gophercises", "Gophercises is on Github !"},
 			},
 		},
-		{"should find many anchor tags", "ex3.html",
+		{"should find many anchor tags: ex3", "ex3.html",
 			[]link{
 				link{"#", "Login"},
 				link{"/lost", "Lost? Need help?"},
 				link{"https://twitter.com/marcusolsson", "@marcusolsson"},
 			},
 		},
-		{"should not include comments or trailing whitespace", "ex4.html",
+		{"should not include comments or trailing whitespace: ex4", "ex4.html",
 			[]link{
 				link{"/dog-cat", "dog cat"},
 				link{"/dog", "Something in a span Text not in a span Bold text!"},
+			},
+		},
+		{"should ignore nested anchor tags but extract text: ex5", "ex5.html",
+			[]link{
+				link{"/outer", "Outer text Henlo  Inner text"},
 			},
 		},
 	}

@@ -20,7 +20,7 @@ func main() {
 	}
 
 	links := extractLinks(html.NewTokenizer(file))
-	fmt.Println(links)
+	fmt.Printf("%+v\n", links)
 }
 
 type link struct {
@@ -37,13 +37,27 @@ func extractLinks(z *html.Tokenizer) (l []link) {
 			break
 		}
 		el, _ := z.TagName()
-		_, href, _ := z.TagAttr()
 		if string(el) == "a" && tt.String() == "StartTag" {
-			z.Next()
-			text := string(z.Text())
+			_, href, _ := z.TagAttr()
+			text := extractText(z)
 			l = append(l, extractLinks(z)...)
 			l = append(l, link{string(href), strings.TrimSpace(text)})
 		}
 	}
 	return l
+}
+
+func extractText(z *html.Tokenizer) string {
+	var ret string
+	for {
+		z.Next()
+		el, _ := z.TagName()
+		if z.Token().Type == html.EndTagToken && string(el) == "a" {
+			break
+		}
+		if z.Token().Type == html.TextToken {
+			ret += " " + strings.TrimSpace(string(z.Raw()))
+		}
+	}
+	return ret
 }
